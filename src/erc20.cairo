@@ -46,7 +46,7 @@ mod ERC20 {
 
     // approve, transfer, transferFrom, increaseAllowance, decreaseAllowance, burn, mint 
     // #[generate_trait]
-    #[external(V0)]
+    #[external(v0)]
     fn approve(ref self: ContractState, spender: ContractAddress, amount: u256) {
         let sender: ContractAddress = get_caller_address();
 
@@ -61,6 +61,13 @@ mod ERC20 {
 
         assert(receiver != is_zero(), 'Zero address');
         assert(amount <= self.balances.read(sender), 'Insufficient amount');
+
+        self.balances.write(sender, (self.balances.read(sender) - amount));
+        self.balances.write(sender, (self.balances.read(receiver) + amount));
+
+        self.emit(Transfer { sender: sender, receiver: receiver, amount: amount });
     }
+
+
 }
 
