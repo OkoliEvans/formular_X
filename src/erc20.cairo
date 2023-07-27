@@ -8,9 +8,9 @@ mod ERC20 {
     struct Storage {
         name: felt252,
         symbol: felt252,
-        decimal: felt252,
-        total_supply: felt252,
-        balance: LegacyMap::<ContractAddress, u252>,
+        decimal: u256,
+        total_supply: u256,
+        balance: LegacyMap::<ContractAddress, u256>,
     }
 
     #[event]
@@ -18,18 +18,22 @@ mod ERC20 {
     enum Event {
         Transfer: Transfer,
         Mint: Mint,
-        Redeem: Redeem,
     }
 
     #[derive(Drop, starknet::Event)]
     struct Transfer {
         sender: ContractAddress,
         receiver: ContractAddress,
-        amount: felt252,
+        amount: u256,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct Mint {
+        receiver: ContractAddress,
+        amount: u256,
     }
 
     
-
 
 }
 
