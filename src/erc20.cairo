@@ -18,6 +18,9 @@ trait ERC20Trait<T> {
     /// @dev Function to get balance of an account
     fn get_balance(self: @T, account: ContractAddress) -> u256;
 
+    ///@dev Function to view allowance for an account
+    fn get_allowance(self: @T, owner: ContractAddress, spender: ContractAddress) -> u256;
+
     /// @dev Function to approve transactions
     fn approve(ref self: T, spender: ContractAddress, amount: u256);
 
@@ -93,35 +96,51 @@ mod ERC20 {
     #[external(v0)]
     impl ERC20Impl of super::ERC20Trait<ContractState> {
 
+        ////////////////////////////////////////////////////
+        //  //  //      IMMUTABLE FUNCTIONS         // // //
+        ///////////////////////////////////////////////////
         fn get_name(self: @ContractState) -> felt252 {
             self.name.read()
         }
+
 
         fn get_symbol(self: @ContractState) -> felt252 {
             self.symbol.read()
         }
 
+
         fn get_decimal(self: @ContractState) -> u256 {
             self.decimal.read()
         }
 
+
         fn get_total_supply(self: @ContractState) -> u256 {
             self.total_supply.read()
         }
+
 
         fn get_balance(self: @ContractState, account: ContractAddress) -> u256 {
             self.balances.read(account)
         }
 
 
+        fn get_allowance(self: @ContractState, owner: ContractAddress, spender: ContractAddress) -> u256 {
+            self.allowances.read((owner, spender))
+        }
+
+
+        //////////////////////////////////////////////////////////////////////
+        //   // //            MUTABLE   FUNCTIONS                   //  //  //
+        /////////////////////////////////////////////////////////////////////
         fn approve(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let sender: ContractAddress = get_caller_address();
 
             assert(spender != is_zero(), 'Zero address');
             assert(amount <= self.balances.read(sender), 'Insufficient amount');
 
-            _approve(sender, spender, amount);
+            self._approve(sender, spender, amount);
         }
+
 
         fn transfer(ref self: ContractState, receiver: ContractAddress, amount: u256) {
             let sender: ContractAddress = get_caller_address();
@@ -137,6 +156,15 @@ mod ERC20 {
 
 
 
+    }
+
+    /// @dev Implementation trait to hold internal functions
+    #[generate_trait]
+    impl InternalFunctions of InternalFunctionsTrait {
+        fn _approve(ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256) {
+            let mut initial_allowance: u256 = self.allowances.read((sender, spender));
+            self.allowances.write((initial_allowance) + amount);
+        }
     }
 }
 
