@@ -156,10 +156,12 @@ mod ERC20 {
             let sender: ContractAddress = get_caller_address();
 
             assert(receiver != is_zero(), 'Zero address');
-            assert(amount <= self.balances.read(sender), 'Insufficient amount');
+            assert(amount < self.balances.read(sender), 'Insufficient amount');
 
             self._update(sender, receiver, amount);
         }
+
+
     }
 
     /// @dev Implementation trait to hold internal functions
@@ -173,6 +175,7 @@ mod ERC20 {
 
             self.emit(Approve { owner: sender, receiver: spender, amount: amount });
         }
+
 
         fn _update(
             ref self: ContractState,
@@ -194,6 +197,7 @@ mod ERC20 {
 
             self.emit(Transfer { sender: sender, receiver: receiver, amount: amount });
         }
+
     }
 }
 
