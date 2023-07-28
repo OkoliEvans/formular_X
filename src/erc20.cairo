@@ -40,7 +40,7 @@ trait ERC20Trait<T> {
     fn decrease_allowance(ref self: T, spender: ContractAddress, amount: u256);
 
     /// @dev Function to burn token
-    fn burn(ref self: T, amount: u256);
+    fn burn(ref self: T, from: ContractAddress, amount: u256);
 }
 
 
@@ -59,6 +59,7 @@ mod ERC20 {
         total_supply: u256,
         balances: LegacyMap::<ContractAddress, u256>,
         allowances: LegacyMap::<(ContractAddress, ContractAddress), u256>,
+        Owner: ContractAddress,
     }
 
     #[event]
@@ -94,14 +95,17 @@ mod ERC20 {
     fn constructor(
         ref self: ContractState, name: felt252, symbol: felt252, decimal: u256, initial_supply: u256
     ) {
+        let owner: ContractAddress = get_caller_address();
+
         self.name.write(name);
         self.symbol.write(symbol);
         self.decimal.write(decimal);
         self.total_supply.write(initial_supply);
+        self.Owner.write(owner);
     }
 
     // approve, transfer, transferFrom, increaseAllowance, decreaseAllowance, burn, mint 
-    // #[generate_trait]
+
     #[external(v0)]
     impl ERC20Impl of super::ERC20Trait<ContractState> {
         ////////////////////////////////////////////////////
@@ -161,6 +165,37 @@ mod ERC20 {
             self._update(sender, receiver, amount);
         }
 
+        fn transferFrom(ref self: ContractState, sender: ContractAddress, receiver: ContractAddress, amount: u256){
+            let caller_bal: u256 = self.balances.read(sender);
+            assert(sender != is_zero(), 'Zero address');
+            assert(receiver != is_zero(), 'Zero address');
+            assert(caller_bal > amount, 'Insufficient balance');
+
+            self._approve(sender, receiver, amount);  
+        }
+
+
+
+        fn mint(ref self: ContractState, to: ContractAddress, amount: u256) {
+            let caller: ContractAddress = get_caller_address();
+            let owner: ContractAddress = self.Owner.read();
+            assert(to != is_zero(), 'Zero Address');
+            assert(caller == owner, 'Unauthorized caller');
+
+            self._update(caller, to, amount);
+        }
+
+
+        fn burn(ref self: ContractState, from: ContractAddress, amount: u256) {
+            let caller = get_caller_address();
+            let owner = self.Owner.read();
+            let caller_bal: u256 = self.balances.read(from);
+
+            assert(caller == owner, 'Unauthorized caller');
+            assert(caller_bal > amount, 'Insufficient balance');
+            self._update(from, zero(), amount);
+        }
+
 
     }
 
@@ -197,7 +232,6 @@ mod ERC20 {
 
             self.emit(Transfer { sender: sender, receiver: receiver, amount: amount });
         }
-
     }
 }
 
