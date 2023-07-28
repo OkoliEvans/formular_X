@@ -171,7 +171,7 @@ mod ERC20 {
             assert(receiver != is_zero(), 'Zero address');
             assert(caller_bal > amount, 'Insufficient balance');
 
-            self._approve(sender, receiver, amount);  
+            self._approve(sender, receiver, amount);
         }
 
 
