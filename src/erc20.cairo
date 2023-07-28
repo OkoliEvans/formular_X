@@ -66,6 +66,7 @@ mod ERC20 {
     enum Event {
         Transfer: Transfer,
         Mint: Mint,
+        Approve: Approve,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -77,6 +78,14 @@ mod ERC20 {
 
     #[derive(Drop, starknet::Event)]
     struct Mint {
+        receiver: ContractAddress,
+        amount: u256,
+    }
+
+
+    #[derive(Drop, starknet::Event)]
+    struct Approve {
+        owner: ContractAddress,
         receiver: ContractAddress,
         amount: u256,
     }
@@ -95,7 +104,6 @@ mod ERC20 {
     // #[generate_trait]
     #[external(v0)]
     impl ERC20Impl of super::ERC20Trait<ContractState> {
-
         ////////////////////////////////////////////////////
         //  //  //      IMMUTABLE FUNCTIONS         // // //
         ///////////////////////////////////////////////////
@@ -124,7 +132,9 @@ mod ERC20 {
         }
 
 
-        fn get_allowance(self: @ContractState, owner: ContractAddress, spender: ContractAddress) -> u256 {
+        fn get_allowance(
+            self: @ContractState, owner: ContractAddress, spender: ContractAddress
+        ) -> u256 {
             self.allowances.read((owner, spender))
         }
 
@@ -148,22 +158,41 @@ mod ERC20 {
             assert(receiver != is_zero(), 'Zero address');
             assert(amount <= self.balances.read(sender), 'Insufficient amount');
 
-            self.balances.write(sender, (self.balances.read(sender) - amount));
-            self.balances.write(sender, (self.balances.read(receiver) + amount));
-
-            self.emit(Transfer { sender: sender, receiver: receiver, amount: amount });
+            self._update(sender, receiver, amount);
         }
-
-
-
     }
 
     /// @dev Implementation trait to hold internal functions
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
-        fn _approve(ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256) {
-            let mut initial_allowance: u256 = self.allowances.read((sender, spender));
-            self.allowances.write((initial_allowance) + amount);
+        fn _approve(
+            ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256
+        ) {
+            // let mut initial_allowance: u256 = self.allowances.read((sender, spender));
+            self.allowances.write((self.allowances.read((sender, spender)) + amount));
+
+            self.emit(Approve { owner: sender, receiver: spender, amount: amount });
+        }
+
+        fn _update(
+            ref self: ContractState,
+            sender: ContractAddress,
+            receiver: ContractAddress,
+            amount: u256
+        ) {
+            if (sender == is_zero()) {
+                self.total_supply.write(self.total_supply.read() + amount);
+            } else {
+                self.balances.write(sender, (self.balances.read(sender) - amount));
+            }
+
+            if (receiver == is_zero()) {
+                self.total_supply.write(self.total_supply.read() - amount);
+            } else {
+                self.balances.write(sender, (self.balances.read(receiver) + amount));
+            }
+
+            self.emit(Transfer { sender: sender, receiver: receiver, amount: amount });
         }
     }
 }
