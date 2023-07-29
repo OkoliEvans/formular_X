@@ -167,11 +167,12 @@ mod ERC20 {
 
         fn transferFrom(ref self: ContractState, sender: ContractAddress, receiver: ContractAddress, amount: u256){
             let caller_bal: u256 = self.balances.read(sender);
+            let current_allowance = self.allowances.read((sender, receiver));
             assert(sender != is_zero(), 'Zero address');
             assert(receiver != is_zero(), 'Zero address');
             assert(caller_bal > amount, 'Insufficient balance');
 
-            self._approve(sender, receiver, amount);
+            self._approve(sender, receiver, current_allowance - amount);
         }
 
 
