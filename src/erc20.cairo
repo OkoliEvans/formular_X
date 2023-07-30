@@ -185,7 +185,10 @@ mod ERC20 {
 
 
         fn decrease_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
+            let owner: ContractAddress = get_caller_address();
+            assert(spender != is_zero(), 'Zero Address');
 
+            self._approve(owner, spender, self.allowances.write(self.allowances.read((owner, spender)) - amount));
         }
 
 
@@ -213,13 +216,18 @@ mod ERC20 {
 
     }
 
+
+    //////////////////////////////////////////////////////////////////////////
+    //                          HELPER FUNCTIONS                            //
+    //////////////////////////////////////////////////////////////////////////
+
     /// @dev Implementation trait to hold internal functions
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
         fn _approve(
             ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256
         ) {
-            // let mut initial_allowance: u256 = self.allowances.read((sender, spender));
+            let mut initial_allowance: u256 = self.allowances.read((sender, spender));
             self.allowances.write((self.allowances.read((sender, spender)) + amount));
 
             self.emit(Approve { owner: sender, receiver: spender, amount: amount });
