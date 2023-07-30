@@ -178,8 +178,9 @@ mod ERC20 {
 
         fn increase_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let owner: ContractAddress = get_caller_address();
+            assert(spender != is_zero(), 'Zero Address');
 
-            
+            self._approve(owner, spender, self.allowances.write(self.allowances.read((owner, spender)) + amount));
         }
 
 
