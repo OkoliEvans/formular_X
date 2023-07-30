@@ -177,12 +177,14 @@ mod ERC20 {
 
 
         fn increase_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
-                
+            let owner: ContractAddress = get_caller_address();
+
+            
         }
 
 
         fn decrease_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
-            
+
         }
 
 
