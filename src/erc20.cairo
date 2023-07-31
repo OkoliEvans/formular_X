@@ -182,7 +182,7 @@ mod ERC20 {
 
             assert(current_allowance > amount, 'Insufficient allowance');
 
-            self._approve(sender, receiver, current_allowance - amount);
+            self._spend_allowance(sender, receiver, amount);
             self._update(sender, receiver, amount);
         }
 
@@ -264,6 +264,17 @@ mod ERC20 {
             }
 
             self.emit(Transfer { sender: sender, receiver: receiver, amount: amount });
+        }
+
+
+        fn _spend_allowance(ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256) {
+            let current_allowance: u256 = self.allowances.read((sender, spender));
+            let ONES_MASK = 0xffffffffffffffffffffffffffffffff_u128;
+
+            let is_unlimited_allowance: bool = current_allowance.low == ONES_MASK && current_allowance.high == ONES_MASK;
+            if !is_unlimited_allowance {
+                self._approve(sender, spender, current_allowance - amount);
+            }
         }
     }
 }
