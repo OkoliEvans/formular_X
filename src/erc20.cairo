@@ -41,7 +41,7 @@ trait IERC20<T> {
     fn decrease_allowance(ref self: T, spender: ContractAddress, amount: u256);
 
     /// @dev Function to burn token
-    fn burn(ref self: T, from: ContractAddress, to: ContractAddress , amount: u256);
+    fn burn(ref self: T, from: ContractAddress, to: ContractAddress, amount: u256);
 }
 
 
@@ -49,7 +49,7 @@ trait IERC20<T> {
 mod ERC20 {
     use super::IERC20;
     use starknet::get_caller_address;
-    use starknet::ContractAddress;
+    use starknet::{ContractAddress, get_contract_address};
     use starknet::contract_address_const;
     use starknet::Zeroable;
 
@@ -95,7 +95,11 @@ mod ERC20 {
 
     #[constructor]
     fn constructor(
-        ref self: ContractState, _name: felt252, _symbol: felt252, _decimal: u256, initial_supply: u256
+        ref self: ContractState,
+        _name: felt252,
+        _symbol: felt252,
+        _decimal: u256,
+        initial_supply: u256
     ) {
         let owner: ContractAddress = get_caller_address();
 
@@ -104,7 +108,6 @@ mod ERC20 {
         self.decimal.write(_decimal);
         self.total_supply.write(initial_supply);
         self.Owner.write(owner);
-        // self.mint( , initial_supply);
     }
 
     // approve, transfer, transferFrom, increaseAllowance, decreaseAllowance, burn, mint 
@@ -168,10 +171,14 @@ mod ERC20 {
             self._update(sender, receiver, amount);
         }
 
-        fn transferFrom(ref self: ContractState, sender: ContractAddress, receiver: ContractAddress, amount: u256){
+        fn transferFrom(
+            ref self: ContractState,
+            sender: ContractAddress,
+            receiver: ContractAddress,
+            amount: u256
+        ) {
             let current_allowance = self.allowances.read((sender, receiver));
-            assert(!sender.is_zero(), 'Zero address');
-            assert(!receiver.is_zero(), 'Zero address');
+
             assert(current_allowance > amount, 'Insufficient allowance');
 
             self._approve(sender, receiver, current_allowance - amount);
@@ -181,7 +188,6 @@ mod ERC20 {
 
         fn increase_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let owner: ContractAddress = get_caller_address();
-            assert(!spender.is_zero(), 'Zero Address');
 
             self._approve(owner, spender, self.allowances.read((owner, spender)) + amount);
         }
@@ -189,11 +195,9 @@ mod ERC20 {
 
         fn decrease_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let owner: ContractAddress = get_caller_address();
-            assert(!spender.is_zero(), 'Zero Address');
 
             self._approve(owner, spender, self.allowances.read((owner, spender)) - amount);
         }
-
 
 
         fn mint(ref self: ContractState, to: ContractAddress, amount: u256) {
@@ -206,18 +210,18 @@ mod ERC20 {
         }
 
 
-        fn burn(ref self: ContractState, from: ContractAddress, to: ContractAddress , amount: u256) {
+        fn burn(ref self: ContractState, from: ContractAddress, to: ContractAddress, amount: u256) {
             let caller = get_caller_address();
             let owner = self.Owner.read();
             let caller_bal: u256 = self.balances.read(from);
 
             assert(caller == owner, 'Unauthorized caller');
             assert(caller_bal > amount, 'Insufficient balance');
-            assert(to.is_zero(), 'Burn to Non zero Address'); // a way to pass zero address internally?
+            assert(
+                to.is_zero(), 'Burn to Non zero Address'
+            ); // a way to pass zero address internally?
             self._update(from, to, amount);
         }
-
-
     }
 
 
@@ -231,6 +235,9 @@ mod ERC20 {
         fn _approve(
             ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256
         ) {
+            assert(!sender.is_zero(), 'Approve from Zero address');
+            assert(!spender.is_zero(), 'Approve to Zero address');
+            
             self.allowances.write((sender, spender), amount);
 
             self.emit(Approve { owner: sender, receiver: spender, amount: amount });
