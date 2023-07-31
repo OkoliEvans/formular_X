@@ -1,9 +1,9 @@
-// use ERC20::erc20::ERC20Trait;
+// use ERC20::erc20::IERC20;
 use starknet::ContractAddress;
 
 /// @dev Trait defining functions that are to be implemented by the contract
 #[starknet::interface]
-trait ERC20Trait<T> {
+trait IERC20<T> {
     /// @dev Function that returns name of token
     fn get_name(self: @T) -> felt252;
 
@@ -47,7 +47,7 @@ trait ERC20Trait<T> {
 
 #[starknet::contract]
 mod ERC20 {
-    // use ERC20::interface::ERC20Trait;
+    use super::IERC20;
     use starknet::get_caller_address;
     use starknet::ContractAddress;
     use starknet::contract_address_const;
@@ -110,7 +110,7 @@ mod ERC20 {
     // approve, transfer, transferFrom, increaseAllowance, decreaseAllowance, burn, mint 
 
     #[external(v0)]
-    impl ERC20Impl of super::ERC20Trait<ContractState> {
+    impl ERC20Impl of super::IERC20<ContractState> {
         ////////////////////////////////////////////////////
         //  //  //      IMMUTABLE FUNCTIONS         // // //
         ///////////////////////////////////////////////////
