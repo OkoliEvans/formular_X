@@ -181,7 +181,7 @@ mod ERC20 {
             let owner: ContractAddress = get_caller_address();
             assert(!spender.is_zero(), 'Zero Address');
 
-            self._approve(owner, spender, self.allowances.write(self.allowances.read((owner, spender)) + amount));
+            self._approve(owner, spender, self.allowances.read((owner, spender)) + amount);
         }
 
 
@@ -189,7 +189,7 @@ mod ERC20 {
             let owner: ContractAddress = get_caller_address();
             assert(!spender.is_zero(), 'Zero Address');
 
-            self._approve(owner, spender, self.allowances.write((self.allowances.read((owner, spender)) - amount)));
+            self._approve(owner, spender, self.allowances.read((owner, spender)) - amount);
         }
 
 
@@ -230,7 +230,7 @@ mod ERC20 {
             ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256
         ) {
             let mut initial_allowance: u256 = self.allowances.read((sender, spender));
-            self.allowances.write((self.allowances.read((sender, spender)) + amount));
+            self.allowances.write((sender, spender), amount);
 
             self.emit(Approve { owner: sender, receiver: spender, amount: amount });
         }
@@ -242,13 +242,13 @@ mod ERC20 {
             receiver: ContractAddress,
             amount: u256
         ) {
-            if (sender == is_zero()) {
+            if (sender.is_zero()) {
                 self.total_supply.write(self.total_supply.read() + amount);
             } else {
                 self.balances.write(sender, (self.balances.read(sender) - amount));
             }
 
-            if (receiver == is_zero()) {
+            if (receiver.is_zero()) {
                 self.total_supply.write(self.total_supply.read() - amount);
             } else {
                 self.balances.write(sender, (self.balances.read(receiver) + amount));
