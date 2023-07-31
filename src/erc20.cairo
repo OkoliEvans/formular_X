@@ -40,7 +40,7 @@ trait ERC20Trait<T> {
     fn decrease_allowance(ref self: T, spender: ContractAddress, amount: u256);
 
     /// @dev Function to burn token
-    fn burn(ref self: T, from: ContractAddress, amount: u256);
+    fn burn(ref self: T, from: ContractAddress, to: ContractAddress , amount: u256);
 }
 
 
@@ -49,6 +49,7 @@ mod ERC20 {
     // use ERC20::interface::ERC20Trait;
     use starknet::get_caller_address;
     use starknet::ContractAddress;
+    use starknet::contract_address_const;
     use starknet::Zeroable;
 
     #[storage]
@@ -149,7 +150,7 @@ mod ERC20 {
         fn approve(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let sender: ContractAddress = get_caller_address();
 
-            assert(spender != is_zero(), 'Zero address');
+            assert(!spender.is_zero(), 'Zero address');
             assert(amount <= self.balances.read(sender), 'Insufficient amount');
 
             self._approve(sender, spender, amount);
@@ -159,7 +160,7 @@ mod ERC20 {
         fn transfer(ref self: ContractState, receiver: ContractAddress, amount: u256) {
             let sender: ContractAddress = get_caller_address();
 
-            assert(receiver != is_zero(), 'Zero address');
+            assert(!receiver.is_zero(), 'Zero address');
             assert(amount < self.balances.read(sender), 'Insufficient amount');
 
             self._update(sender, receiver, amount);
@@ -167,8 +168,8 @@ mod ERC20 {
 
         fn transferFrom(ref self: ContractState, sender: ContractAddress, receiver: ContractAddress, amount: u256){
             let current_allowance = self.allowances.read((sender, receiver));
-            assert(sender != is_zero(), 'Zero address');
-            assert(receiver != is_zero(), 'Zero address');
+            assert(!sender.is_zero(), 'Zero address');
+            assert(!receiver.is_zero(), 'Zero address');
             assert(current_allowance > amount, 'Insufficient allowance');
 
             self._approve(sender, receiver, current_allowance - amount);
@@ -178,7 +179,7 @@ mod ERC20 {
 
         fn increase_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let owner: ContractAddress = get_caller_address();
-            assert(spender != is_zero(), 'Zero Address');
+            assert(!spender.is_zero(), 'Zero Address');
 
             self._approve(owner, spender, self.allowances.write(self.allowances.read((owner, spender)) + amount));
         }
@@ -186,9 +187,9 @@ mod ERC20 {
 
         fn decrease_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let owner: ContractAddress = get_caller_address();
-            assert(spender != is_zero(), 'Zero Address');
+            assert(!spender.is_zero(), 'Zero Address');
 
-            self._approve(owner, spender, self.allowances.write(self.allowances.read((owner, spender)) - amount));
+            self._approve(owner, spender, self.allowances.write((self.allowances.read((owner, spender)) - amount)));
         }
 
 
@@ -196,21 +197,22 @@ mod ERC20 {
         fn mint(ref self: ContractState, to: ContractAddress, amount: u256) {
             let caller: ContractAddress = get_caller_address();
             let owner: ContractAddress = self.Owner.read();
-            assert(to != is_zero(), 'Zero Address');
+            assert(!to.is_zero(), 'Zero Address');
             assert(caller == owner, 'Unauthorized caller');
 
             self._update(caller, to, amount);
         }
 
 
-        fn burn(ref self: ContractState, from: ContractAddress, amount: u256) {
+        fn burn(ref self: ContractState, from: ContractAddress, to: ContractAddress , amount: u256) {
             let caller = get_caller_address();
             let owner = self.Owner.read();
             let caller_bal: u256 = self.balances.read(from);
 
             assert(caller == owner, 'Unauthorized caller');
             assert(caller_bal > amount, 'Insufficient balance');
-            self._update(from, zero(), amount);
+            assert(to.is_zero(), 'Non zero Address');
+            self._update(from, to, amount);
         }
 
 
