@@ -114,9 +114,11 @@ mod ERC20 {
 
     #[external(v0)]
     impl ERC20Impl of super::IERC20<ContractState> {
+
+          ////////////////////////////////////////////////////
+         //              IMMUTABLE FUNCTIONS               //
         ////////////////////////////////////////////////////
-        //  //  //      IMMUTABLE FUNCTIONS         // // //
-        ///////////////////////////////////////////////////
+
         fn get_name(self: @ContractState) -> felt252 {
             self.name.read()
         }
@@ -149,13 +151,12 @@ mod ERC20 {
         }
 
 
-        //////////////////////////////////////////////////////////////////////
-        //   // //            MUTABLE   FUNCTIONS                   //  //  //
-        /////////////////////////////////////////////////////////////////////
+         ////////////////////////////////////////////////////////////////////
+        //                     MUTABLE   FUNCTIONS                        //
+       ////////////////////////////////////////////////////////////////////
         fn approve(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let sender: ContractAddress = get_caller_address();
-
-            assert(!spender.is_zero(), 'Zero address');
+            
             assert(amount <= self.balances.read(sender), 'Insufficient amount');
 
             self._approve(sender, spender, amount);
@@ -237,7 +238,7 @@ mod ERC20 {
         ) {
             assert(!sender.is_zero(), 'Approve from Zero address');
             assert(!spender.is_zero(), 'Approve to Zero address');
-            
+
             self.allowances.write((sender, spender), amount);
 
             self.emit(Approve { owner: sender, receiver: spender, amount: amount });
