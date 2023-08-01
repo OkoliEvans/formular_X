@@ -10,7 +10,7 @@ trait IERC721<T> {
     fn transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
     fn approve(ref self: T, to: ContractAddress, token_id: u128);
     fn set_approval_for_all(ref self: T, operator: ContractAddress, approved: bool);
-    fn get_approved(ref self: T, token_id: u128);
+    fn get_approved(ref self: T, token_id: u128) -> ContractAddress;
     fn safe_transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
 
 }
@@ -104,17 +104,20 @@ mod ERC721 {
         }
 
 
-        fn get_approved(ref self: ContractState, token_id: u128) {
-            
+        fn get_approved(ref self: ContractState, token_id: u128) -> ContractAddress {
+            self._require_minted(token_id);
+            self.token_approvals.read(token_id)
         }
 
         fn transfer_from(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128) {
-
+            let caller: ContractAddress = get_caller_address();
+            assert(self._is_approved_or_owner(caller, token_id), 'ERC721 Insufficient Approval');
+            self._transfer(from, to, token_id);
         }
 
 
         fn safe_transfer_from(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128) {
-
+            self._safe_transfer_from(from, to, token_id);
         }
 
     }
