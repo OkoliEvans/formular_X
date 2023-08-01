@@ -67,6 +67,10 @@ mod ERC721 {
     #[external(v0)]
     impl IERC721Trait of super::IERC721<ContractState> {
 
+          /////////////////////////////////////////////////////////
+         //              IMMUTABLE FUNCTIONS                   //
+        ///////////////////////////////////////////////////////
+
         fn get_name(self: @ContractState) -> felt252 {
             self.name.read()
         }
@@ -87,6 +91,10 @@ mod ERC721 {
         fn is_approved_for_all(self: @ContractState, owner: ContractAddress, operator: ContractAddress) -> bool {
             self.operator_approvals.read((owner, operator))
         }
+
+          ///////////////////////////////////////////////////////
+         //              MUTABLE FUNCTIONS                    //
+        //////////////////////////////////////////////////////
 
         fn approve(ref self: ContractState, to: ContractAddress, token_id: u128) {
             let owner: ContractAddress = self.owner_of(token_id);
@@ -122,6 +130,9 @@ mod ERC721 {
 
     }
 
+      //////////////////////////////////////////////////////////
+     //              HELPER FUNCTIONS                        //
+    //////////////////////////////////////////////////////////
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
         
