@@ -88,9 +88,15 @@ mod ERC721 {
             self.operator_approvals.read((owner, operator))
         }
 
-        fn approve(ref self: T, to: ContractAddress, token_id: u128);
+        fn approve(ref self: ContractState, to: ContractAddress, token_id: u128) {
+            let owner = self.owner_of(token_id);
+            let caller = get_caller_address();
+            assert(to != owner, 'Invalid receiver');
+            assert(caller == self.Owner.read() && self.is_approved_for_all(owner, to), 'ERC721 Invalid Approver');
+            
+        }
 
-        
+
         fn set_approval_for_all(ref self: T, operator: ContractAddress, approved: bool);
         fn get_approved(ref self: T, token_id: u128);
         fn safe_transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
