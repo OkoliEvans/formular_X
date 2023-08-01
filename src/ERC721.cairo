@@ -89,18 +89,39 @@ mod ERC721 {
         }
 
         fn approve(ref self: ContractState, to: ContractAddress, token_id: u128) {
-            let owner = self.owner_of(token_id);
-            let caller = get_caller_address();
+            let owner: ContractAddress = self.owner_of(token_id);
+            let caller: ContractAddress = get_caller_address();
             assert(to != owner, 'Invalid receiver');
             assert(caller == self.Owner.read() && self.is_approved_for_all(owner, to), 'ERC721 Invalid Approver');
-            
+
+            self._approve(to, token_id);
         }
 
 
-        fn set_approval_for_all(ref self: T, operator: ContractAddress, approved: bool);
-        fn get_approved(ref self: T, token_id: u128);
-        fn safe_transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
+        fn set_approval_for_all(ref self: ContractState, operator: ContractAddress, approved: bool) {
+            let caller: ContractAddress = get_caller_address();
+            self._set_approval_for_all(caller, operator, approve);
+        }
 
+
+        fn get_approved(ref self: ContractState, token_id: u128) {
+            
+        }
+
+        fn transfer_from(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128) {
+
+        }
+
+
+        fn safe_transfer_from(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128) {
+
+        }
+
+    }
+
+    #[generate_trait]
+    impl InternalFunctions of InternalFunctionsTrait {
+        
     }
 
 }
