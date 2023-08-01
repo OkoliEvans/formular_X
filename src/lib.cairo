@@ -1,1 +1,2 @@
-mod erc20;
+mod ERC20;
+mod ERC721;
