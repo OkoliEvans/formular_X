@@ -189,6 +189,8 @@ mod ERC20 {
 
         fn increase_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let owner: ContractAddress = get_caller_address();
+            let owner_bal = self.balances.read(owner);
+            assert(owner_bal > amount, 'Insufficient balance');
 
             self._approve(owner, spender, self.allowances.read((owner, spender)) + amount);
         }
@@ -196,6 +198,10 @@ mod ERC20 {
 
         fn decrease_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let owner: ContractAddress = get_caller_address();
+            let current_allowance = self.allowances.read((owner, spender));
+
+            assert(current_allowance > amount, 'Insufficient allowance decrease');
+
 
             self._approve(owner, spender, self.allowances.read((owner, spender)) - amount);
         }
