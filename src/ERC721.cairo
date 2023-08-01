@@ -83,12 +83,14 @@ mod ERC721 {
             self.owners.read(token_id)
         }
 
+        // Returns if the 'operator' is allowed to manage all of the assets of 'owner'
         fn is_approved_for_all(self: @ContractState, owner: ContractAddress, operator: ContractAddress) -> bool {
             self.operator_approvals.read((owner, operator))
         }
 
-        fn transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
         fn approve(ref self: T, to: ContractAddress, token_id: u128);
+
+        
         fn set_approval_for_all(ref self: T, operator: ContractAddress, approved: bool);
         fn get_approved(ref self: T, token_id: u128);
         fn safe_transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
