@@ -4,7 +4,7 @@ use starknet::ContractAddress;
 trait IERC721<T> {
     fn get_name(self: @T) -> felt252;
     fn get_symbol(self: @T) -> felt252;
-    fn balance_of(self: @T, owner: ContractAddress) -> u8;
+    fn balance_of(self: @T, owner: ContractAddress) -> u128;
     fn owner_of(self: @T, token_id: u128) -> ContractAddress;
     fn is_approved_for_all(self: @T, owner: ContractAddress, operator: ContractAddress) -> bool;
     fn transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
@@ -66,9 +66,33 @@ mod ERC721 {
 
     #[external(v0)]
     impl IERC721Trait of super::IERC721<ContractState> {
-        fn (: felt252) -> felt252 {
-            
+
+        fn get_name(self: @ContractState) -> felt252 {
+            self.name.read()
         }
+
+        fn get_symbol(self: @ContractState) -> felt252 {
+            self.symbol.read()
+        }
+
+        fn balance_of(self: @ContractState, owner: ContractAddress) -> u128 {
+            self.balances.read(owner)
+        }
+
+        fn owner_of(self: @ContractState, token_id: u128) -> ContractAddress {
+            self.owners.read(token_id)
+        }
+
+        fn is_approved_for_all(self: @ContractState, owner: ContractAddress, operator: ContractAddress) -> bool {
+            self.operator_approvals.read((owner, operator))
+        }
+
+        fn transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
+        fn approve(ref self: T, to: ContractAddress, token_id: u128);
+        fn set_approval_for_all(ref self: T, operator: ContractAddress, approved: bool);
+        fn get_approved(ref self: T, token_id: u128);
+        fn safe_transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
+
     }
 
 }
