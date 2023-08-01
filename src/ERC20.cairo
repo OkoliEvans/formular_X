@@ -11,7 +11,7 @@ trait IERC20<T> {
     fn get_symbol(self: @T) -> felt252;
 
     /// @dev Function that returns decimal of token
-    fn get_decimal(self: @T) -> u256;
+    fn get_decimal(self: @T) -> u8;
 
     /// @dev Function that returns total supply of token
     fn get_total_supply(self: @T) -> u256;
@@ -32,7 +32,7 @@ trait IERC20<T> {
     fn transferFrom(ref self: T, sender: ContractAddress, receiver: ContractAddress, amount: u256);
 
     /// @dev Function to mint tokens
-    fn mint(ref self: T, to: ContractAddress, amount: u256);
+    fn mint(ref self: T, from: ContractAddress, to: ContractAddress, amount: u256);
 
     /// @dev Function to increase allowances
     fn increase_allowance(ref self: T, spender: ContractAddress, amount: u256);
@@ -57,7 +57,7 @@ mod ERC20 {
     struct Storage {
         name: felt252,
         symbol: felt252,
-        decimal: u256,
+        decimal: u8,
         total_supply: u256,
         balances: LegacyMap::<ContractAddress, u256>,
         allowances: LegacyMap::<(ContractAddress, ContractAddress), u256>,
@@ -98,7 +98,7 @@ mod ERC20 {
         ref self: ContractState,
         _name: felt252,
         _symbol: felt252,
-        _decimal: u256,
+        _decimal: u8,
         initial_supply: u256
     ) {
         let owner: ContractAddress = get_caller_address();
@@ -129,7 +129,7 @@ mod ERC20 {
         }
 
 
-        fn get_decimal(self: @ContractState) -> u256 {
+        fn get_decimal(self: @ContractState) -> u8 {
             self.decimal.read()
         }
 
@@ -167,7 +167,7 @@ mod ERC20 {
             let sender: ContractAddress = get_caller_address();
 
             assert(!receiver.is_zero(), 'Zero address');
-            assert(amount < self.balances.read(sender), 'Insufficient amount');
+            assert(amount <= self.balances.read(sender), 'Insufficient amount');
 
             self._update(sender, receiver, amount);
         }
@@ -180,7 +180,7 @@ mod ERC20 {
         ) {
             let current_allowance = self.allowances.read((sender, receiver));
 
-            assert(current_allowance > amount, 'Insufficient allowance');
+            assert(current_allowance >= amount, 'Insufficient allowance');
 
             self._spend_allowance(sender, receiver, amount);
             self._update(sender, receiver, amount);
@@ -190,7 +190,7 @@ mod ERC20 {
         fn increase_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let owner: ContractAddress = get_caller_address();
             let owner_bal = self.balances.read(owner);
-            assert(owner_bal > amount, 'Insufficient balance');
+            assert(owner_bal >= amount, 'Insufficient balance');
 
             self._approve(owner, spender, self.allowances.read((owner, spender)) + amount);
         }
@@ -200,20 +200,21 @@ mod ERC20 {
             let owner: ContractAddress = get_caller_address();
             let current_allowance = self.allowances.read((owner, spender));
 
-            assert(current_allowance > amount, 'Insufficient allowance decrease');
+            assert(current_allowance >= amount, 'Insufficient allowance decrease');
 
 
             self._approve(owner, spender, self.allowances.read((owner, spender)) - amount);
         }
 
 
-        fn mint(ref self: ContractState, to: ContractAddress, amount: u256) {
+        fn mint(ref self: ContractState,from: ContractAddress, to: ContractAddress, amount: u256) {
             let caller: ContractAddress = get_caller_address();
             let owner: ContractAddress = self.Owner.read();
+            assert(from.is_zero(), 'Mint from non zero');
             assert(!to.is_zero(), 'Mint to Zero Address');
             assert(caller == owner, 'Unauthorized caller');
 
-            self._update(caller, to, amount);
+            self._update(from, to, amount);
         }
 
 
@@ -223,7 +224,7 @@ mod ERC20 {
             let caller_bal: u256 = self.balances.read(from);
 
             assert(caller == owner, 'Unauthorized caller');
-            assert(caller_bal > amount, 'Insufficient balance');
+            assert(caller_bal >= amount, 'Insufficient balance');
             assert(
                 to.is_zero(), 'Burn to Non zero Address'
             ); // a way to pass zero address internally?
