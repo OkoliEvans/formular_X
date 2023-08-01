@@ -31,6 +31,44 @@ mod ERC721 {
         balances: LegacyMap::<ContractAddress, u128>,
         token_approvals: LegacyMap::<u128, ContractAddress>,
         operator_approvals: LegacyMap::<(ContractAddress, ContractAddress), bool>,
+        Owner: ContractAddress
+    }
+
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        Approval: Approval,
+        Transfer: Transfer,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct Approval {
+        from: ContractAddress,
+        to: ContractAddress,
+        token_id: u128
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct Transfer {
+        from: ContractAddress,
+        to: ContractAddress,
+        token_id: u128
+    }
+
+    #[constructor]
+    fn constructor(ref self: ContractState, _name: felt252, _symbol: felt252) {
+        let owner: ContractAddress = get_caller_address();
+        self.name.write(_name);
+        self.symbol.write(_symbol);
+
+        self.Owner.write(owner);
+    }
+
+    #[external(v0)]
+    impl IERC721Trait of super::IERC721<ContractState> {
+        fn (: felt252) -> felt252 {
+            
+        }
     }
 
 }

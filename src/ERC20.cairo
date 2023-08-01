@@ -69,7 +69,6 @@ mod ERC20 {
     #[derive(Drop, starknet::Event)]
     enum Event {
         Transfer: Transfer,
-        Mint: Mint,
         Approve: Approve,
     }
 
@@ -79,13 +78,6 @@ mod ERC20 {
         receiver: ContractAddress,
         amount: u256,
     }
-
-    #[derive(Drop, starknet::Event)]
-    struct Mint {
-        receiver: ContractAddress,
-        amount: u256,
-    }
-
 
     #[derive(Drop, starknet::Event)]
     struct Approve {
