@@ -282,7 +282,7 @@ mod ERC20 {
             let u256_max: u256 = BoundedU256::max();
             let u256_min: u256 = BoundedU256::min();
 
-            assert(current_allowance < u256_max || current_allowance > u256_min, 'ERR: Overflow or Underflow');
+            assert(current_allowance < u256_max && current_allowance > u256_min, 'ERR: Overflow or Underflow');
             self._approve(sender, spender, current_allowance - amount);
         }
     }
