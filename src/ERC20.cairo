@@ -52,7 +52,7 @@ mod ERC20 {
     use starknet::{ContractAddress, get_contract_address};
     use starknet::contract_address_const;
     use starknet::Zeroable;
-    // use starknet::integer::BoundedInt;
+    use integer::BoundedU256;
 
     #[storage]
     struct Storage {
@@ -267,14 +267,23 @@ mod ERC20 {
         }
 
 
+        // fn spend_allowance(ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256) {
+        //     let current_allowance: u256 = self.allowances.read((sender, spender));
+        //     let ONES_MASK = 0xffffffffffffffffffffffffffffffff_u128;
+
+        //     let is_unlimited_allowance: bool = current_allowance.low == ONES_MASK && current_allowance.high == ONES_MASK;
+        //     if !is_unlimited_allowance {
+        //         self._approve(sender, spender, current_allowance - amount);
+        //     }
+        // }
+
         fn _spend_allowance(ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256) {
             let current_allowance: u256 = self.allowances.read((sender, spender));
-            let ONES_MASK = 0xffffffffffffffffffffffffffffffff_u128;
+            let u256_max: u256 = BoundedU256::max();
+            let u256_min: u256 = BoundedU256::min();
 
-            let is_unlimited_allowance: bool = current_allowance.low == ONES_MASK && current_allowance.high == ONES_MASK;
-            if !is_unlimited_allowance {
-                self._approve(sender, spender, current_allowance - amount);
-            }
+            assert(current_allowance < u256_max || current_allowance > u256_min, 'ERR: Overflow or Underflow');
+            self._approve(sender, spender, current_allowance - amount);
         }
     }
 }
