@@ -39,6 +39,7 @@ mod ERC721 {
     enum Event {
         Approval: Approval,
         Transfer: Transfer,
+        Approval_for_all: Approval_for_all,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -53,6 +54,13 @@ mod ERC721 {
         from: ContractAddress,
         to: ContractAddress,
         token_id: u128
+    }
+
+    #[derive(Drop, starknet::Event)]
+    struct Approval_for_all {
+        owner: ContractAddress,
+        operator: ContractAddress,
+        approved: bool
     }
 
     #[constructor]
@@ -108,7 +116,7 @@ mod ERC721 {
 
         fn set_approval_for_all(ref self: ContractState, operator: ContractAddress, approved: bool) {
             let caller: ContractAddress = get_caller_address();
-            self._set_approval_for_all(caller, operator, approve);
+            self._set_approval_for_all(caller, operator, approved);
         }
 
 
@@ -135,8 +143,15 @@ mod ERC721 {
     //////////////////////////////////////////////////////////
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
-        fn _approve(ref self: ContractState, to: ContractAddress, token_id: u128) {
-            self.token_approvals.write(token_id, to);
+        fn _approve(ref self: ContractState, _to: ContractAddress, _token_id: u128) {
+            self.token_approvals.write(_token_id, _to);
+            self.emit(Approval {from: self.owner_of(_token_id), to: _to, token_id: _token_id} );
+        }
+
+        fn _set_approval_for_all(ref self: ContractState, _owner: ContractAddress , _operator: ContractAddress, _approved: bool) {
+            assert(_owner != _operator, 'ERC721 Invalid Operator');
+            self.operator_approvals.write((_owner, _operator), _approved);
+            self.emit( Approval_for_all {owner: _owner, operator: _operator, approved: _approved});
         }
 
         
