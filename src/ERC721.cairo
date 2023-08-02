@@ -135,6 +135,10 @@ mod ERC721 {
     //////////////////////////////////////////////////////////
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
+        fn _approve(ref self: ContractState, to: ContractAddress, token_id: u128) {
+            self.token_approvals.write(token_id, to);
+        }
+
         
     }
 
