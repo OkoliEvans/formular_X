@@ -136,6 +136,8 @@ mod ERC721 {
             self._safe_transfer_from(from, to, token_id);
         }
 
+        // mint, safemint, burn etc
+
     }
 
       //////////////////////////////////////////////////////////
@@ -154,7 +156,19 @@ mod ERC721 {
             self.emit( Approval_for_all {owner: _owner, operator: _operator, approved: _approved});
         }
 
-        
+        // Reverts if the 'token id' has not been minted yet
+        fn _require_minted(self: @ContractState, _token_id: u128) {
+            assert(self._exists(_token_id), 'ERC721 Non-existent token');
+        }
+
+        // Returns true if token is minted
+        fn _exists(self: @ContractState, _token_id: u128) -> bool {
+            let token_owner: ContractAddress = self.owner_of(_token_id);
+            !token_owner.is_zero()
+        }
+
+
+
     }
 
 }
