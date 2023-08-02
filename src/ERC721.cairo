@@ -168,11 +168,17 @@ mod ERC721 {
         }
 
         // Returns whether 'spender' is allowed to manage 'tokenid'
-        fn _is_approved_or_owner(self: @ContractState, _spender: ContractAddress, _token_id: u128) -> bool {
-            
+        fn _is_approved_or_owner(ref self: ContractState, _spender: ContractAddress, _token_id: u128) -> bool {
+            let token_owner: ContractAddress = self.owner_of(_token_id);
+            _spender == token_owner || self.is_approved_for_all(token_owner, _spender) || self.get_approved(_token_id) == _spender
         } 
 
-
+        fn _transfer(ref self: ContractState, _from: ContractAddress, _to: ContractAddress, _token_id: u128) {
+            let token_owner: ContractAddress = self.owner_of(_token_id);
+            assert(token_owner == _from, 'ERC721 Incorrect Owner');
+            assert(!_to.is_zero(), 'ERC721 Invalid Receiver');
+            
+        }
 
     }
 
