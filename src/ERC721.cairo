@@ -177,7 +177,10 @@ mod ERC721 {
             let token_owner: ContractAddress = self.owner_of(_token_id);
             assert(token_owner == _from, 'ERC721 Incorrect Owner');
             assert(!_to.is_zero(), 'ERC721 Invalid Receiver');
-            
+            // self._before_token_transfer(_from, _to, _token_id, 1); // Is this needed in Cairo?
+
+            delete self.token_approvals.read(_token_id);
+
         }
 
     }
