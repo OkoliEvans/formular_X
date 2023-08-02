@@ -167,6 +167,11 @@ mod ERC721 {
             !token_owner.is_zero()
         }
 
+        // Returns whether 'spender' is allowed to manage 'tokenid'
+        fn _is_approved_or_owner(self: @ContractState, _spender: ContractAddress, _token_id: u128) -> bool {
+            
+        } 
+
 
 
     }
