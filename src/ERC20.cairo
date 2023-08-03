@@ -24,7 +24,7 @@ trait IERC20<T> {
 
     /// @dev OZ standard
     fn balanceOf(self: @T, account: ContractAddress) -> u256;
-    
+
     ///@dev Function to view allowance for an account
     fn allowance(self: @T, owner: ContractAddress, spender: ContractAddress) -> u256;
 
@@ -36,7 +36,7 @@ trait IERC20<T> {
 
     /// @dev Function to transfer on behalf of owner
     fn transfer_from(ref self: T, sender: ContractAddress, receiver: ContractAddress, amount: u256);
-    
+
     /// @dev OZ standard
     fn transferFrom(ref self: T, sender: ContractAddress, receiver: ContractAddress, amount: u256);
 
@@ -90,12 +90,7 @@ mod ERC20 {
     }
 
     #[constructor]
-    fn constructor(
-        ref self: ContractState,
-        _name: felt252,
-        _symbol: felt252,
-        _decimal: u8,
-    ) {
+    fn constructor(ref self: ContractState, _name: felt252, _symbol: felt252, _decimal: u8, ) {
         let _owner: ContractAddress = get_caller_address();
 
         self.name.write(_name);
@@ -108,9 +103,8 @@ mod ERC20 {
 
     #[external(v0)]
     impl ERC20Impl of super::IERC20<ContractState> {
-
-          ////////////////////////////////////////////////////
-         //              IMMUTABLE FUNCTIONS               //
+        ////////////////////////////////////////////////////
+        //              IMMUTABLE FUNCTIONS               //
         ////////////////////////////////////////////////////
 
         fn name(self: @ContractState) -> felt252 {
@@ -132,7 +126,16 @@ mod ERC20 {
             self.total_supply.read()
         }
 
+        // OZ standard
+        fn totalSupply(self: @ContractState) -> u256 {
+            self.total_supply.read()
+        }
 
+        fn balance_of(self: @ContractState, account: ContractAddress) -> u256 {
+            self.balances.read(account)
+        }
+
+        // OZ standard
         fn balanceOf(self: @ContractState, account: ContractAddress) -> u256 {
             self.balances.read(account)
         }
@@ -145,13 +148,11 @@ mod ERC20 {
         }
 
 
-         ////////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////
         //                     MUTABLE   FUNCTIONS                        //
-       ////////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////
         fn approve(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let sender: ContractAddress = get_caller_address();
-            
-            assert(amount <= self.balances.read(sender), 'Insufficient amount');
 
             self._approve(sender, spender, amount);
         }
@@ -161,27 +162,32 @@ mod ERC20 {
             let sender: ContractAddress = get_caller_address();
 
             assert(!receiver.is_zero(), 'Zero address');
-            assert(amount <= self.balances.read(sender), 'Insufficient amount');
-
             self._update(sender, receiver, amount);
         }
 
+        fn transfer_from(
+            ref self: ContractState,
+            sender: ContractAddress,
+            receiver: ContractAddress,
+            amount: u256
+        ) {
+            self._spend_allowance(sender, receiver, amount);
+            self._update(sender, receiver, amount);
+        }
+
+        /// OZ standard
         fn transferFrom(
             ref self: ContractState,
             sender: ContractAddress,
             receiver: ContractAddress,
             amount: u256
         ) {
-            let current_allowance = self.allowances.read((sender, receiver));
-
-            assert(current_allowance >= amount, 'Insufficient allowance');
-
             self._spend_allowance(sender, receiver, amount);
             self._update(sender, receiver, amount);
         }
 
 
-        fn mint(ref self: ContractState,from: ContractAddress, to: ContractAddress, amount: u256) {
+        fn mint(ref self: ContractState, from: ContractAddress, to: ContractAddress, amount: u256) {
             let caller: ContractAddress = get_caller_address();
             let _owner: ContractAddress = self.owner.read();
             assert(from.is_zero(), 'Mint from non zero');
@@ -221,7 +227,7 @@ mod ERC20 {
 
             self.allowances.write((owner_, spender), amount);
 
-            self.emit(Approve { owner: owner_ , receiver: spender, amount });
+            self.emit(Approve { owner: owner_, receiver: spender, amount });
         }
 
 
@@ -240,30 +246,22 @@ mod ERC20 {
             if (receiver.is_zero()) {
                 self.total_supply.write(self.total_supply.read() - amount);
             } else {
-                self.balances.write(sender, (self.balances.read(receiver) + amount));
+                self.balances.write(receiver, (self.balances.read(receiver) + amount));
             }
 
-            self.emit(Transfer { sender: sender, receiver: receiver, amount: amount });
+            self.emit(Transfer { sender, receiver, amount });
         }
 
 
-        // fn spend_allowance(ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256) {
-        //     let current_allowance: u256 = self.allowances.read((sender, spender));
-        //     let ONES_MASK = 0xffffffffffffffffffffffffffffffff_u128;
-
-        //     let is_unlimited_allowance: bool = current_allowance.low == ONES_MASK && current_allowance.high == ONES_MASK;
-        //     if !is_unlimited_allowance {
-        //         self._approve(sender, spender, current_allowance - amount);
-        //     }
-        // }
-
-        fn _spend_allowance(ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256) {
+        fn _spend_allowance(
+            ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256
+        ) {
             let current_allowance: u256 = self.allowances.read((sender, spender));
-            let u256_max: u256 = BoundedU256::max();
-            let u256_min: u256 = BoundedU256::min();
 
-            assert(current_allowance < u256_max && current_allowance > u256_min, 'ERR: Overflow or Underflow');
-            self._approve(sender, spender, current_allowance - amount);
+            let is_unlimited_allowance: bool = current_allowance > BoundedU256::max();
+            if !is_unlimited_allowance {
+                self._approve(sender, spender, current_allowance - amount);
+            }
         }
     }
 }
