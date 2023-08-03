@@ -62,7 +62,7 @@ mod ERC20 {
         name: felt252,
         symbol: felt252,
         decimal: u8,
-        total_supply: u256,
+        total_supply: u256, // how do I add the decimal to total supply
         balances: LegacyMap::<ContractAddress, u256>,
         allowances: LegacyMap::<(ContractAddress, ContractAddress), u256>,
         owner: ContractAddress,
