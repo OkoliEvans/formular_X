@@ -41,10 +41,10 @@ trait IERC20<T> {
     fn transferFrom(ref self: T, sender: ContractAddress, receiver: ContractAddress, amount: u256);
 
     /// @dev Function to mint tokens
-    fn mint(ref self: T, from: ContractAddress, to: ContractAddress, amount: u256);
+    fn mint(ref self: T, to: ContractAddress, amount: u256);
 
     /// @dev Function to burn token
-    fn burn(ref self: T, from: ContractAddress, to: ContractAddress, amount: u256);
+    fn burn(ref self: T, from: ContractAddress, amount: u256);
 }
 
 
@@ -72,7 +72,7 @@ mod ERC20 {
     #[derive(Drop, starknet::Event)]
     enum Event {
         Transfer: Transfer,
-        Approve: Approve,
+        Approval: Approval,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -83,7 +83,7 @@ mod ERC20 {
     }
 
     #[derive(Drop, starknet::Event)]
-    struct Approve {
+    struct Approval {
         owner: ContractAddress,
         receiver: ContractAddress,
         amount: u256,
@@ -152,9 +152,9 @@ mod ERC20 {
         //                     MUTABLE   FUNCTIONS                        //
         ////////////////////////////////////////////////////////////////////
         fn approve(ref self: ContractState, spender: ContractAddress, amount: u256) {
-            let sender: ContractAddress = get_caller_address();
+            let _owner: ContractAddress = get_caller_address();
 
-            self._approve(sender, spender, amount);
+            self._approve(_owner, spender, amount);
         }
 
 
@@ -187,27 +187,22 @@ mod ERC20 {
         }
 
 
-        fn mint(ref self: ContractState, from: ContractAddress, to: ContractAddress, amount: u256) {
+        fn mint(ref self: ContractState, to: ContractAddress, amount: u256) {
             let caller: ContractAddress = get_caller_address();
             let _owner: ContractAddress = self.owner.read();
-            assert(from.is_zero(), 'Mint from non zero');
-            assert(!to.is_zero(), 'Mint to Zero Address');
             assert(caller == _owner, 'Unauthorized caller');
 
-            self._update(from, to, amount);
+
+            self._mint(to, amount);
         }
 
 
-        fn burn(ref self: ContractState, from: ContractAddress, to: ContractAddress, amount: u256) {
+        fn burn(ref self: ContractState, from: ContractAddress, amount: u256) {
             let caller = get_caller_address();
             let _owner = self.owner.read();
-            let caller_bal: u256 = self.balances.read(from);
 
             assert(caller == _owner, 'Unauthorized caller');
-            assert(
-                to.is_zero(), 'Burn to Non zero Address'
-            ); // a way to pass zero address internally?
-            self._update(from, to, amount);
+            self._burn(from, amount);
         }
     }
 
@@ -218,7 +213,19 @@ mod ERC20 {
 
     /// @dev Implementation trait to hold internal functions
     #[generate_trait]
-    impl InternalFunctions of InternalFunctionsTrait {
+    impl InternalImpl of InternalTrait {
+
+        fn _mint(ref self: ContractState, to: ContractAddress, amount: u256) {
+            assert(!to.is_zero(), 'ERC20: Mint to 0');
+            self._update(Zeroable::zero(), to, amount);
+        }
+
+        fn _burn(ref self: ContractState, from: ContractAddress, amount: u256) {
+            assert(!from.is_zero(), 'ERC20: burn from 0');
+            self._update(from, Zeroable::zero(), amount);
+        }
+
+
         fn _approve(
             ref self: ContractState, owner_: ContractAddress, spender: ContractAddress, amount: u256
         ) {
@@ -227,7 +234,7 @@ mod ERC20 {
 
             self.allowances.write((owner_, spender), amount);
 
-            self.emit(Approve { owner: owner_, receiver: spender, amount });
+            self.emit(Approval { owner: owner_, receiver: spender, amount });
         }
 
 
@@ -254,13 +261,13 @@ mod ERC20 {
 
 
         fn _spend_allowance(
-            ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256
+            ref self: ContractState, owner_: ContractAddress, spender: ContractAddress, amount: u256
         ) {
-            let current_allowance: u256 = self.allowances.read((sender, spender));
+            let current_allowance: u256 = self.allowances.read((owner_, spender));
 
             let is_unlimited_allowance: bool = current_allowance > BoundedU256::max();
             if !is_unlimited_allowance {
-                self._approve(sender, spender, current_allowance - amount);
+                self._approve(owner_, spender, current_allowance - amount);
             }
         }
     }
