@@ -5,22 +5,28 @@ use starknet::ContractAddress;
 #[starknet::interface]
 trait IERC20<T> {
     /// @dev Function that returns name of token
-    fn get_name(self: @T) -> felt252;
+    fn name(self: @T) -> felt252;
 
     /// @dev Function that returns symbol of token
-    fn get_symbol(self: @T) -> felt252;
+    fn symbol(self: @T) -> felt252;
 
     /// @dev Function that returns decimal of token
-    fn get_decimal(self: @T) -> u8;
+    fn decimals(self: @T) -> u8;
 
     /// @dev Function that returns total supply of token
-    fn get_total_supply(self: @T) -> u256;
+    fn total_supply(self: @T) -> u256;
+
+    // @dev OZ standard
+    fn totalSupply(self: @T) -> u256;
 
     /// @dev Function to get balance of an account
-    fn get_balance(self: @T, account: ContractAddress) -> u256;
+    fn balance_of(self: @T, account: ContractAddress) -> u256;
 
+    /// @dev OZ standard
+    fn balanceOf(self: @T, account: ContractAddress) -> u256;
+    
     ///@dev Function to view allowance for an account
-    fn get_allowance(self: @T, owner: ContractAddress, spender: ContractAddress) -> u256;
+    fn allowance(self: @T, owner: ContractAddress, spender: ContractAddress) -> u256;
 
     /// @dev Function to approve transactions
     fn approve(ref self: T, spender: ContractAddress, amount: u256);
@@ -29,16 +35,13 @@ trait IERC20<T> {
     fn transfer(ref self: T, receiver: ContractAddress, amount: u256);
 
     /// @dev Function to transfer on behalf of owner
+    fn transfer_from(ref self: T, sender: ContractAddress, receiver: ContractAddress, amount: u256);
+    
+    /// @dev OZ standard
     fn transferFrom(ref self: T, sender: ContractAddress, receiver: ContractAddress, amount: u256);
 
     /// @dev Function to mint tokens
     fn mint(ref self: T, from: ContractAddress, to: ContractAddress, amount: u256);
-
-    /// @dev Function to increase allowances
-    fn increase_allowance(ref self: T, spender: ContractAddress, amount: u256);
-
-    /// @dev Function to decrease allowances
-    fn decrease_allowance(ref self: T, spender: ContractAddress, amount: u256);
 
     /// @dev Function to burn token
     fn burn(ref self: T, from: ContractAddress, to: ContractAddress, amount: u256);
@@ -62,7 +65,7 @@ mod ERC20 {
         total_supply: u256,
         balances: LegacyMap::<ContractAddress, u256>,
         allowances: LegacyMap::<(ContractAddress, ContractAddress), u256>,
-        Owner: ContractAddress,
+        owner: ContractAddress,
     }
 
     #[event]
@@ -92,15 +95,13 @@ mod ERC20 {
         _name: felt252,
         _symbol: felt252,
         _decimal: u8,
-        initial_supply: u256
     ) {
-        let owner: ContractAddress = get_caller_address();
+        let _owner: ContractAddress = get_caller_address();
 
         self.name.write(_name);
         self.symbol.write(_symbol);
         self.decimal.write(_decimal);
-        self.total_supply.write(initial_supply);
-        self.Owner.write(owner);
+        self.owner.write(_owner);
     }
 
     // approve, transfer, transferFrom, increaseAllowance, decreaseAllowance, burn, mint 
@@ -112,32 +113,32 @@ mod ERC20 {
          //              IMMUTABLE FUNCTIONS               //
         ////////////////////////////////////////////////////
 
-        fn get_name(self: @ContractState) -> felt252 {
+        fn name(self: @ContractState) -> felt252 {
             self.name.read()
         }
 
 
-        fn get_symbol(self: @ContractState) -> felt252 {
+        fn symbol(self: @ContractState) -> felt252 {
             self.symbol.read()
         }
 
 
-        fn get_decimal(self: @ContractState) -> u8 {
+        fn decimals(self: @ContractState) -> u8 {
             self.decimal.read()
         }
 
 
-        fn get_total_supply(self: @ContractState) -> u256 {
+        fn total_supply(self: @ContractState) -> u256 {
             self.total_supply.read()
         }
 
 
-        fn get_balance(self: @ContractState, account: ContractAddress) -> u256 {
+        fn balanceOf(self: @ContractState, account: ContractAddress) -> u256 {
             self.balances.read(account)
         }
 
 
-        fn get_allowance(
+        fn allowance(
             self: @ContractState, owner: ContractAddress, spender: ContractAddress
         ) -> u256 {
             self.allowances.read((owner, spender))
@@ -180,32 +181,12 @@ mod ERC20 {
         }
 
 
-        fn increase_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
-            let owner: ContractAddress = get_caller_address();
-            let owner_bal = self.balances.read(owner);
-            assert(owner_bal >= amount, 'Insufficient balance');
-
-            self._approve(owner, spender, self.allowances.read((owner, spender)) + amount);
-        }
-
-
-        fn decrease_allowance(ref self: ContractState, spender: ContractAddress, amount: u256) {
-            let owner: ContractAddress = get_caller_address();
-            let current_allowance = self.allowances.read((owner, spender));
-
-            assert(current_allowance >= amount, 'Insufficient allowance decrease');
-
-
-            self._approve(owner, spender, self.allowances.read((owner, spender)) - amount);
-        }
-
-
         fn mint(ref self: ContractState,from: ContractAddress, to: ContractAddress, amount: u256) {
             let caller: ContractAddress = get_caller_address();
-            let owner: ContractAddress = self.Owner.read();
+            let _owner: ContractAddress = self.owner.read();
             assert(from.is_zero(), 'Mint from non zero');
             assert(!to.is_zero(), 'Mint to Zero Address');
-            assert(caller == owner, 'Unauthorized caller');
+            assert(caller == _owner, 'Unauthorized caller');
 
             self._update(from, to, amount);
         }
@@ -213,11 +194,10 @@ mod ERC20 {
 
         fn burn(ref self: ContractState, from: ContractAddress, to: ContractAddress, amount: u256) {
             let caller = get_caller_address();
-            let owner = self.Owner.read();
+            let _owner = self.owner.read();
             let caller_bal: u256 = self.balances.read(from);
 
-            assert(caller == owner, 'Unauthorized caller');
-            assert(caller_bal >= amount, 'Insufficient balance');
+            assert(caller == _owner, 'Unauthorized caller');
             assert(
                 to.is_zero(), 'Burn to Non zero Address'
             ); // a way to pass zero address internally?
@@ -234,14 +214,14 @@ mod ERC20 {
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
         fn _approve(
-            ref self: ContractState, sender: ContractAddress, spender: ContractAddress, amount: u256
+            ref self: ContractState, owner_: ContractAddress, spender: ContractAddress, amount: u256
         ) {
-            assert(!sender.is_zero(), 'Approve from Zero address');
+            assert(!owner_.is_zero(), 'Approve from Zero address');
             assert(!spender.is_zero(), 'Approve to Zero address');
 
-            self.allowances.write((sender, spender), amount);
+            self.allowances.write((owner_, spender), amount);
 
-            self.emit(Approve { owner: sender, receiver: spender, amount: amount });
+            self.emit(Approve { owner: owner_ , receiver: spender, amount });
         }
 
 
