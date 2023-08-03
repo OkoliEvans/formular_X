@@ -1,4 +1,3 @@
-// use ERC20::erc20::IERC20;
 use starknet::ContractAddress;
 
 /// @dev Trait defining functions that are to be implemented by the contract
