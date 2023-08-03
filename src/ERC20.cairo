@@ -153,14 +153,12 @@ mod ERC20 {
         ////////////////////////////////////////////////////////////////////
         fn approve(ref self: ContractState, spender: ContractAddress, amount: u256) {
             let _owner: ContractAddress = get_caller_address();
-
             self._approve(_owner, spender, amount);
         }
 
 
         fn transfer(ref self: ContractState, receiver: ContractAddress, amount: u256) {
             let sender: ContractAddress = get_caller_address();
-
             assert(!receiver.is_zero(), 'Zero address');
             self._update(sender, receiver, amount);
         }
@@ -191,8 +189,6 @@ mod ERC20 {
             let caller: ContractAddress = get_caller_address();
             let _owner: ContractAddress = self.owner.read();
             assert(caller == _owner, 'Unauthorized caller');
-
-
             self._mint(to, amount);
         }
 
@@ -200,7 +196,6 @@ mod ERC20 {
         fn burn(ref self: ContractState, from: ContractAddress, amount: u256) {
             let caller = get_caller_address();
             let _owner = self.owner.read();
-
             assert(caller == _owner, 'Unauthorized caller');
             self._burn(from, amount);
         }
@@ -229,9 +224,8 @@ mod ERC20 {
         fn _approve(
             ref self: ContractState, owner_: ContractAddress, spender: ContractAddress, amount: u256
         ) {
-            assert(!owner_.is_zero(), 'Approve from Zero address');
-            assert(!spender.is_zero(), 'Approve to Zero address');
-
+            assert(!owner_.is_zero(), 'ERC20: Approve from 0');
+            assert(!spender.is_zero(), 'ERC20: Approve to 0');
             self.allowances.write((owner_, spender), amount);
 
             self.emit(Approval { owner: owner_, receiver: spender, amount });
@@ -264,12 +258,11 @@ mod ERC20 {
             ref self: ContractState, owner_: ContractAddress, spender: ContractAddress, amount: u256
         ) {
             let current_allowance: u256 = self.allowances.read((owner_, spender));
-
             let is_unlimited_allowance: bool = current_allowance > BoundedU256::max();
+            
             if !is_unlimited_allowance {
                 self._approve(owner_, spender, current_allowance - amount);
             }
         }
     }
 }
-
