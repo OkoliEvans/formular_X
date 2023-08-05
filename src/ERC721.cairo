@@ -1,19 +1,19 @@
-// use starknet::ContractAddress;
+use starknet::ContractAddress;
 
-// #[starknet::interface]
-// trait IERC721<T> {
-//     fn get_name(self: @T) -> felt252;
-//     fn get_symbol(self: @T) -> felt252;
-//     fn balance_of(self: @T, owner: ContractAddress) -> u128;
-//     fn owner_of(self: @T, token_id: u128) -> ContractAddress;
-//     fn is_approved_for_all(self: @T, owner: ContractAddress, operator: ContractAddress) -> bool;
-//     fn transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
-//     fn approve(ref self: T, to: ContractAddress, token_id: u128);
-//     fn set_approval_for_all(ref self: T, operator: ContractAddress, approved: bool);
-//     fn get_approved(ref self: T, token_id: u128) -> ContractAddress;
-//     fn safe_transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
+#[starknet::interface]
+trait IERC721<T> {
+    fn get_name(self: @T) -> felt252;
+    fn get_symbol(self: @T) -> felt252;
+    fn balance_of(self: @T, owner: ContractAddress) -> u128;
+    fn owner_of(self: @T, token_id: u128) -> ContractAddress;
+    fn is_approved_for_all(self: @T, owner: ContractAddress, operator: ContractAddress) -> bool;
+    fn transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
+    fn approve(ref self: T, to: ContractAddress, token_id: u128);
+    fn set_approval_for_all(ref self: T, operator: ContractAddress, approved: bool);
+    fn get_approved(ref self: T, token_id: u128) -> ContractAddress;
+    fn safe_transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
 
-// }
+}
 
 #[starknet::contract]
 mod ERC721 {
@@ -21,7 +21,8 @@ mod ERC721 {
     use starknet::get_caller_address;
     use starknet::Zeroable;
     use starknet::contract_address_const;
-    use starkzepp::interface::IERC721Trait;
+    use super::IERC721;
+    // use starkzepp::interface::IERC721Trait;
     
     #[storage]
     struct Storage {
@@ -179,7 +180,17 @@ mod ERC721 {
             assert(!_to.is_zero(), 'ERC721 Invalid Receiver');
             // self._before_token_transfer(_from, _to, _token_id, 1); // Is this needed in Cairo?
 
-            delete self.token_approvals.read(_token_id);
+            self.token_approvals.write(_token_id, Zeroable::zero());
+            
+            self.balances.write(_from, self.balances.read(_from) - 1) ;
+            self.balances.write(_to, self.balances.read(_to) + 1);
+            self.owners.write(_token_id, _to);
+
+            self.emit( Transfer {from: _from, to: _to, token_id: _token_id} );
+        }
+
+
+        fn _safe_transfer_from(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128) {
 
         }
 
