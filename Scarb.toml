@@ -2,7 +2,7 @@
 name = "starkzepp"
 version = "0.1.0"
 author = "Okoli Evans"
-description = "An ERC20 contract written in Cairo for Starknet"
+description = "Smart contracts written in Cairo for Starknet"
 readme = "README.md"
 repository = "https://github.com/OkoliEvans/formular_X/blob/main/src/ERC20.cairo"
 License-file = "LICENSE"
@@ -11,4 +11,4 @@ keywords = ["ERC20", "ERC721", "Starknet", "contracts", "security"]
 # See more keys and their definitions at https://docs.swmansion.com/scarb/docs/reference/manifest
 
 [dependencies]
-starknet = ">=2.1.0-rc0"
+starknet = ">=2.0.1"
