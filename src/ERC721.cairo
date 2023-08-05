@@ -2,8 +2,8 @@ use starknet::ContractAddress;
 
 #[starknet::interface]
 trait IERC721<T> {
-    fn get_name(self: @T) -> felt252;
-    fn get_symbol(self: @T) -> felt252;
+    fn name(self: @T) -> felt252;
+    fn symbol(self: @T) -> felt252;
     fn balance_of(self: @T, owner: ContractAddress) -> u128;
     fn owner_of(self: @T, token_id: u128) -> ContractAddress;
     fn is_approved_for_all(self: @T, owner: ContractAddress, operator: ContractAddress) -> bool;
@@ -82,11 +82,11 @@ mod ERC721 {
          //              IMMUTABLE FUNCTIONS                   //
         ///////////////////////////////////////////////////////
 
-        fn get_name(self: @ContractState) -> felt252 {
+        fn name(self: @ContractState) -> felt252 {
             self.name.read()
         }
 
-        fn get_symbol(self: @ContractState) -> felt252 {
+        fn symbol(self: @ContractState) -> felt252 {
             self.symbol.read()
         }
 
@@ -148,6 +148,35 @@ mod ERC721 {
     //////////////////////////////////////////////////////////
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
+
+        fn token_uri(ref self: ContractState, token_id: u128) -> felt252 {
+            self._require_minted(token_id);
+
+            let base_uri: felt252 = self._base_uri();
+            if base_uri.len() > 0 {
+
+            }
+        }
+
+        fn _base_uri(self: @ContractState) -> felt252 {
+            ''
+        } 
+
+        fn mint(ref self: ContractState, to: ContractAddress, token_id: u128) {
+            assert(!self._exists(token_id), 'ERC721 Invalid sender');
+            assert(!to.is_zero(), 'ERC721 Mint to 0');
+
+            self.balances.write(to, self.balances.read(to) + 1);
+            self.owners.write(token_id, to);
+
+            self.emit( Transfer {from: Zeroable::zero(), to, token_id});
+        }
+
+        fn burn() {
+
+        }
+
+
         fn _approve(ref self: ContractState, _to: ContractAddress, _token_id: u128) {
             self.token_approvals.write(_token_id, _to);
             self.emit(Approval {from: self.owner_of(_token_id), to: _to, token_id: _token_id} );
