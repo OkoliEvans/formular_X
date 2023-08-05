@@ -11,7 +11,7 @@ trait IERC721<T> {
     fn approve(ref self: T, to: ContractAddress, token_id: u128);
     fn set_approval_for_all(ref self: T, operator: ContractAddress, approved: bool);
     fn get_approved(ref self: T, token_id: u128) -> ContractAddress;
-    fn safe_transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
+    fn safe_transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128, data: felt252);
 
 }
 
@@ -32,7 +32,9 @@ mod ERC721 {
         balances: LegacyMap::<ContractAddress, u128>,
         token_approvals: LegacyMap::<u128, ContractAddress>,
         operator_approvals: LegacyMap::<(ContractAddress, ContractAddress), bool>,
+        token_uri: LegacyMap::<u128, felt252>,
         Owner: ContractAddress
+        
     }
 
     #[event]
@@ -133,8 +135,8 @@ mod ERC721 {
         }
 
 
-        fn safe_transfer_from(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128) {
-            self._safe_transfer_from(from, to, token_id);
+        fn safe_transfer_from(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128, data: felt252) {
+            self._safe_transfer_from(from, to, token_id, data);
         }
 
         // mint, safemint, burn etc
@@ -181,17 +183,26 @@ mod ERC721 {
             // self._before_token_transfer(_from, _to, _token_id, 1); // Is this needed in Cairo?
 
             self.token_approvals.write(_token_id, Zeroable::zero());
-            
+
             self.balances.write(_from, self.balances.read(_from) - 1) ;
             self.balances.write(_to, self.balances.read(_to) + 1);
+
             self.owners.write(_token_id, _to);
 
             self.emit( Transfer {from: _from, to: _to, token_id: _token_id} );
         }
 
 
-        fn _safe_transfer_from(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128) {
+        fn _safe_transfer_from(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128, data: felt252) {
+            let check_receiver = self._check_on_erc721_received(from, to, token_id, data);
+            self._transfer(from, to, token_id);
+            assert(check_receiver, 'ERC721 invalid receiver');
+        }
 
+
+        //NO CAP
+        fn _check_on_erc721_received(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128, data: felt252) -> bool {
+            
         }
 
     }
