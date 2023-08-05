@@ -33,7 +33,7 @@ mod ERC721 {
         token_approvals: LegacyMap::<u128, ContractAddress>,
         operator_approvals: LegacyMap::<(ContractAddress, ContractAddress), bool>,
         token_uri: LegacyMap::<u128, felt252>,
-        Owner: ContractAddress
+        _owner: ContractAddress,
         
     }
 
@@ -72,7 +72,7 @@ mod ERC721 {
         self.name.write(_name);
         self.symbol.write(_symbol);
 
-        self.Owner.write(owner);
+        self._owner.write(owner);
     }
 
     #[external(v0)]
@@ -111,7 +111,7 @@ mod ERC721 {
             let owner: ContractAddress = self.owner_of(token_id);
             let caller: ContractAddress = get_caller_address();
             assert(to != owner, 'Invalid receiver');
-            assert(caller == self.Owner.read() && self.is_approved_for_all(owner, to), 'ERC721 Invalid Approver');
+            assert(caller == self._owner.read() && self.is_approved_for_all(owner, to), 'ERC721 Invalid Approver');
 
             self._approve(to, token_id);
         }
@@ -151,11 +151,7 @@ mod ERC721 {
 
         fn token_uri(ref self: ContractState, token_id: u128) -> felt252 {
             self._require_minted(token_id);
-
-            let base_uri: felt252 = self._base_uri();
-            if base_uri.len() > 0 {
-
-            }
+            self.token_uri.read(token_id)
         }
 
         fn _base_uri(self: @ContractState) -> felt252 {
@@ -163,8 +159,11 @@ mod ERC721 {
         } 
 
         fn mint(ref self: ContractState, to: ContractAddress, token_id: u128) {
-            assert(!self._exists(token_id), 'ERC721 Invalid sender');
-            assert(!to.is_zero(), 'ERC721 Mint to 0');
+            let caller: ContractAddress = get_caller_address();
+            let owner: ContractAddress = self._owner.read();
+            assert(caller == owner, 'ERC721: Invalid caller');
+            assert(!self._exists(token_id), 'ERC721: Invalid sender');
+            assert(!to.is_zero(), 'ERC721: Mint to 0');
 
             self.balances.write(to, self.balances.read(to) + 1);
             self.owners.write(token_id, to);
@@ -172,8 +171,16 @@ mod ERC721 {
             self.emit( Transfer {from: Zeroable::zero(), to, token_id});
         }
 
-        fn burn() {
+        fn burn(ref self:ContractState, token_id: u128) {
+            let owner:  ContractAddress = self.owner_of(token_id);
+            let caller: ContractAddress = get_caller_address();
+            assert(caller == owner, 'ERC721: Invalid caller');
+            self.token_approvals.write(token_id, Zeroable::zero());
 
+            self.balances.write(owner, self.balances.read(owner) - 1 );
+            self.owners.write(token_id, Zeroable::zero());
+
+            self.emit( Transfer {from: owner, to: Zeroable::zero(), token_id});
         }
 
 
@@ -183,14 +190,14 @@ mod ERC721 {
         }
 
         fn _set_approval_for_all(ref self: ContractState, _owner: ContractAddress , _operator: ContractAddress, _approved: bool) {
-            assert(_owner != _operator, 'ERC721 Invalid Operator');
+            assert(_owner != _operator, 'ERC721: Invalid Operator');
             self.operator_approvals.write((_owner, _operator), _approved);
             self.emit( Approval_for_all {owner: _owner, operator: _operator, approved: _approved});
         }
 
         // Reverts if the 'token id' has not been minted yet
         fn _require_minted(self: @ContractState, _token_id: u128) {
-            assert(self._exists(_token_id), 'ERC721 Non-existent token');
+            assert(self._exists(_token_id), 'ERC721: Non-existent token');
         }
 
         // Returns true if token is minted
@@ -207,8 +214,8 @@ mod ERC721 {
 
         fn _transfer(ref self: ContractState, _from: ContractAddress, _to: ContractAddress, _token_id: u128) {
             let token_owner: ContractAddress = self.owner_of(_token_id);
-            assert(token_owner == _from, 'ERC721 Incorrect Owner');
-            assert(!_to.is_zero(), 'ERC721 Invalid Receiver');
+            assert(token_owner == _from, 'ERC721: Incorrect Owner');
+            assert(!_to.is_zero(), 'ERC721: Invalid Receiver');
             // self._before_token_transfer(_from, _to, _token_id, 1); // Is this needed in Cairo?
 
             self.token_approvals.write(_token_id, Zeroable::zero());
@@ -225,7 +232,7 @@ mod ERC721 {
         fn _safe_transfer_from(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128, data: felt252) {
             let check_receiver = self._check_on_erc721_received(from, to, token_id, data);
             self._transfer(from, to, token_id);
-            assert(check_receiver, 'ERC721 invalid receiver');
+            assert(check_receiver, 'ERC721: invalid receiver');
         }
 
 
