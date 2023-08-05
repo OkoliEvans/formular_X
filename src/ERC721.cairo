@@ -21,7 +21,7 @@ mod ERC721 {
     use starknet::get_caller_address;
     use starknet::Zeroable;
     use starknet::contract_address_const;
-    use starkzepp::src::interface::IERC721;
+    use starkzepp::interface::IERC721::IERC721Trait;
     
     #[storage]
     struct Storage {

@@ -1,7 +1,7 @@
 use starknet::ContractAddress;
 
 #[starknet::interface]
-trait IERC721<T> {
+trait IERC721Trait<T> {
     fn get_name(self: @T) -> felt252;
     fn get_symbol(self: @T) -> felt252;
     fn balance_of(self: @T, owner: ContractAddress) -> u128;
