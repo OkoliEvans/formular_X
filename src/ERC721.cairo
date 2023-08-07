@@ -230,17 +230,10 @@ mod ERC721 {
 
 
         fn _safe_transfer_from(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128, data: felt252) {
-            let check_receiver = self._check_on_erc721_received(from, to, token_id, data);
+            // let check_receiver = self._check_on_erc721_received(from, to, token_id, data);
             self._transfer(from, to, token_id);
-            assert(check_receiver, 'ERC721: invalid receiver');
+            // assert(check_receiver, 'ERC721: invalid receiver');
         }
-
-
-        //NO CAP
-        fn _check_on_erc721_received(ref self: ContractState, from: ContractAddress, to: ContractAddress, token_id: u128, data: felt252) -> bool {
-            
-        }
-
     }
 
 }
