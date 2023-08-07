@@ -6,6 +6,7 @@ trait IERC721<T> {
     fn symbol(self: @T) -> felt252;
     fn balance_of(self: @T, owner: ContractAddress) -> u128;
     fn owner_of(self: @T, token_id: u128) -> ContractAddress;
+    fn token_uri(self: @T, token_id: u128) -> felt252;
     fn is_approved_for_all(self: @T, owner: ContractAddress, operator: ContractAddress) -> bool;
     fn transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
     fn approve(ref self: T, to: ContractAddress, token_id: u128);
@@ -21,6 +22,9 @@ mod ERC721 {
     use starknet::get_caller_address;
     use starknet::Zeroable;
     use starknet::contract_address_const;
+    use traits::Into;
+    use traits::TryInto;
+    use option::OptionTrait;
     use super::IERC721;
     // use starkzepp::interface::IERC721Trait;
     
@@ -91,17 +95,27 @@ mod ERC721 {
         }
 
         fn balance_of(self: @ContractState, owner: ContractAddress) -> u128 {
+            assert(owner.is_non_zero(), 'ERC721: Invalid owner');
             self.balances.read(owner)
         }
 
         fn owner_of(self: @ContractState, token_id: u128) -> ContractAddress {
-            self.owners.read(token_id)
+            let owner: ContractAddress = self.owners.read(token_id);
+            assert(owner.is_non_zero(), 'ERC721: Invalid tokenID');
+            owner
         }
 
         // Returns if the 'operator' is allowed to manage all of the assets of 'owner'
         fn is_approved_for_all(self: @ContractState, owner: ContractAddress, operator: ContractAddress) -> bool {
             self.operator_approvals.read((owner, operator))
+
         }
+
+         fn token_uri(self: @ContractState, token_id: u128) -> felt252 {
+            self._require_minted(token_id);
+            self.token_uri.read(token_id)
+        }
+
 
           ///////////////////////////////////////////////////////
          //              MUTABLE FUNCTIONS                    //
@@ -111,7 +125,7 @@ mod ERC721 {
             let owner: ContractAddress = self.owner_of(token_id);
             let caller: ContractAddress = get_caller_address();
             assert(to != owner, 'Invalid receiver');
-            assert(caller == self._owner.read() && self.is_approved_for_all(owner, to), 'ERC721 Invalid Approver');
+            assert(caller == self._owner.read() || self.is_approved_for_all(owner, to), 'ERC721 Unauthorised caller');
 
             self._approve(to, token_id);
         }
@@ -149,14 +163,14 @@ mod ERC721 {
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
 
-        fn token_uri(ref self: ContractState, token_id: u128) -> felt252 {
-            self._require_minted(token_id);
-            self.token_uri.read(token_id)
-        }
-
         fn _base_uri(self: @ContractState) -> felt252 {
             ''
         } 
+
+        fn set_token_uri(ref self: ContractState, token_id: u128, token_uri: felt252) {
+            self._require_minted(token_id);
+            self.token_uri.write(token_id, token_uri);
+        }
 
         fn mint(ref self: ContractState, to: ContractAddress, token_id: u128) {
             let caller: ContractAddress = get_caller_address();
@@ -165,7 +179,8 @@ mod ERC721 {
             assert(!self._exists(token_id), 'ERC721: Invalid sender');
             assert(!to.is_zero(), 'ERC721: Mint to 0');
 
-            self.balances.write(to, self.balances.read(to) + 1);
+            let to_balance:u128 = self.balances.read(to);
+            self.balances.write(to, to_balance + 1);
             self.owners.write(token_id, to);
 
             self.emit( Transfer {from: Zeroable::zero(), to, token_id});
