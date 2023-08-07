@@ -23,8 +23,6 @@ mod ERC721 {
     use starknet::Zeroable;
     use starknet::contract_address_const;
     use traits::Into;
-    use traits::TryInto;
-    use option::OptionTrait;
     use super::IERC721;
     // use starkzepp::interface::IERC721Trait;
     
