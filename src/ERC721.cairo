@@ -161,10 +161,6 @@ mod ERC721 {
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
 
-        fn _base_uri(self: @ContractState) -> felt252 {
-            ''
-        } 
-
         fn set_token_uri(ref self: ContractState, token_id: u128, token_uri: felt252) {
             self._require_minted(token_id);
             self.token_uri.write(token_id, token_uri);
