@@ -13,4 +13,4 @@ trait IERC721Trait<T> {
     fn get_approved(ref self: T, token_id: u128) -> ContractAddress;
     fn safe_transfer_from(ref self: T, from: ContractAddress, to: ContractAddress, token_id: u128);
 
-}
+} // This does not work yet
