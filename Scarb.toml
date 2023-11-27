@@ -11,4 +11,4 @@ keywords = ["ERC20", "ERC721", "Starknet", "contracts", "security"]
 # See more keys and their definitions at https://docs.swmansion.com/scarb/docs/reference/manifest
 
 [dependencies]
-starknet = ">=2.0.1"
+starknet = ">=2.3.0.rc0"

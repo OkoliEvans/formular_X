@@ -89,13 +89,14 @@ mod ERC20 {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, _name: felt252, _symbol: felt252, _decimal: u8, ) {
+    fn constructor(ref self: ContractState, _name: felt252, _symbol: felt252, _decimal: u8, initial_supply: u256, recipient: ContractAddress ) {
         let _owner: ContractAddress = get_caller_address();
 
         self.name.write(_name);
         self.symbol.write(_symbol);
         self.decimal.write(_decimal);
         self.owner.write(_owner);
+        self._mint(recipient, initial_supply);
     }
 
     // approve, transfer, transferFrom, increaseAllowance, decreaseAllowance, burn, mint 
